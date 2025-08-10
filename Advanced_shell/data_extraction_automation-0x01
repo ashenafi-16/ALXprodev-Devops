@@ -1,36 +1,18 @@
 #!/bin/bash
-# File: data_extraction_automation-0x01
-# Purpose: Extract name, type, weight and height from data.json using only jq, awk, sed
-
 set -euo pipefail
-
 JSON_FILE="data.json"
 
-# 1) Check that JSON file exists and is not empty
 if [ ! -s "$JSON_FILE" ]; then
   echo "Error: $JSON_FILE not found or empty" >&2
   exit 1
 fi
 
-# 2) Use jq to extract raw values
-#    - name: string (e.g. "pikachu")
-#    - height: integer in decimetres (e.g. 4 => 0.4 m)
-#    - weight: integer in hectograms (e.g. 60 => 6 kg)
-#    - type: primary type name (types[0].type.name)
-RAW_NAME=$(jq -r '.name' "$JSON_FILE")
-RAW_HEIGHT=$(jq -r '.height' "$JSON_FILE")
-RAW_WEIGHT=$(jq -r '.weight' "$JSON_FILE")
-RAW_TYPE=$(jq -r '.types[0].type.name' "$JSON_FILE")
+name=$(jq -r '.name' "$JSON_FILE" | awk '{ sub(".", toupper(substr($0,1,1))); print }')
+height=$(jq -r '.height' "$JSON_FILE")
+weight=$(jq -r '.weight' "$JSON_FILE")
+type=$(jq -r '.types[0].type.name' "$JSON_FILE" | awk '{ sub(".", toupper(substr($0,1,1))); print }')
 
-# 3) Format numeric values using awk (division and formatting)
-#    - height_m: meters with 1 decimal place
-#    - weight_kg: if integer show no decimal (e.g. 6), else show one decimal (e.g. 6.9)
-HEIGHT_M=$(awk -v h="$RAW_HEIGHT" 'BEGIN{hm=h/10; printf "%.1f", hm}')
-WEIGHT_KG=$(awk -v w="$RAW_WEIGHT" 'BEGIN{wk=w/10; if (wk==int(wk)) printf "%d", int(wk); else printf "%.1f", wk}')
+formatted_height=$(awk -v h="$height" 'BEGIN { printf "%.1f", h/10 }')
+formatted_weight=$(awk -v w="$weight" 'BEGIN { wk=w/10; if (wk==int(wk)) printf "%d", int(wk); else printf "%.1f", wk }')
 
-# 4) Capitalize first letter of name and type using awk (allowed)
-NAME_CAP=$(printf "%s" "$RAW_NAME" | awk '{ sub(".", toupper(substr($0,1,1))); print }')
-TYPE_CAP=$(printf "%s" "$RAW_TYPE" | awk '{ sub(".", toupper(substr($0,1,1))); print }')
-
-# 5) Print final human-readable sentence
-echo "${NAME_CAP} is of type ${TYPE_CAP}, weighs ${WEIGHT_KG}kg, and is ${HEIGHT_M}m tall."
+echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."

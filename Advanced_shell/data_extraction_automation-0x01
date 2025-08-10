@@ -7,10 +7,10 @@ if [ ! -s "$JSON_FILE" ]; then
   exit 1
 fi
 
-name=$(jq -r '.name' "$JSON_FILE" | awk '{ sub(".", toupper(substr($0,1,1))); print }')
+name=$(jq -r '.name' "$JSON_FILE" | sed 's/./\U&/')
 height=$(jq -r '.height' "$JSON_FILE")
 weight=$(jq -r '.weight' "$JSON_FILE")
-type=$(jq -r '.types[0].type.name' "$JSON_FILE" | awk '{ sub(".", toupper(substr($0,1,1))); print }')
+type=$(jq -r '.types[0].type.name' "$JSON_FILE" | sed 's/./\U&/')
 
 formatted_height=$(awk -v h="$height" 'BEGIN { printf "%.1f", h/10 }')
 formatted_weight=$(awk -v w="$weight" 'BEGIN { wk=w/10; if (wk==int(wk)) printf "%d", int(wk); else printf "%.1f", wk }')

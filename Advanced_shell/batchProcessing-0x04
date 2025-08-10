@@ -1,0 +1,44 @@
+#!/bin/bash
+
+POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+OUTPUT_DIR="pokemon_data_parallel"
+ERROR_FILE="errors_parallel.txt"
+
+mkdir -p "$OUTPUT_DIR"
+: > "$ERROR_FILE"  # clear old error log
+
+fetch_pokemon() {
+    local pokemon="$1"
+    echo "Fetching data for $pokemon..."
+    if curl -s -f "https://pokeapi.co/api/v2/pokemon/${pokemon,,}" -o "$OUTPUT_DIR/${pokemon,,}.json"; then
+        echo "Saved data to $OUTPUT_DIR/${pokemon,,}.json ✅"
+    else
+        echo "Failed to fetch data for $pokemon" >> "$ERROR_FILE"
+    fi
+}
+
+PIDS=()
+
+# Start processes in parallel
+for pokemon in "${POKEMONS[@]}"; do
+    fetch_pokemon "$pokemon" &
+    PIDS+=($!)
+done
+
+# Wait for all processes, kill if any hangs too long
+TIMEOUT=15  # seconds for all jobs to finish
+START=$(date +%s)
+
+for pid in "${PIDS[@]}"; do
+    while kill -0 "$pid" 2>/dev/null; do
+        NOW=$(date +%s)
+        if (( NOW - START > TIMEOUT )); then
+            echo "Process $pid exceeded time limit — killing..."
+            kill "$pid" 2>/dev/null
+            break
+        fi
+        sleep 1
+    done
+done
+
+echo "All parallel fetches complete!"

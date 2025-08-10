@@ -1,0 +1,33 @@
+#!/bin/bash
+
+
+set -euo pipefail
+
+# 1) Define an array of Pokémon names to process
+POKEMONS=(bulbasaur ivysaur venusaur charmander charmeleon)
+
+# 2) Create output directory if it doesn't exist
+OUTPUT_DIR="pokemon_data"
+mkdir -p "$OUTPUT_DIR"
+
+# 3) Loop through each Pokémon name in the array
+for pokemon in "${POKEMONS[@]}"; do
+    echo "Fetching data for $pokemon..."
+
+    # 4) Construct the API URL dynamically for the current Pokémon
+    API_URL="https://pokeapi.co/api/v2/pokemon/${pokemon}"
+
+    # 5) Use curl to fetch data silently and save output to a file named after the Pokémon
+    #    e.g., pokemon_data/bulbasaur.json
+    curl -s "$API_URL" -o "${OUTPUT_DIR}/${pokemon}.json"
+
+    # 6) Check if curl succeeded by checking if file exists and is not empty
+    if [ -s "${OUTPUT_DIR}/${pokemon}.json" ]; then
+        echo "Saved data to ${OUTPUT_DIR}/${pokemon}.json ✅"
+    else
+        echo "Failed to fetch data for $pokemon ❌"
+    fi
+
+    # 7) Add a short delay (2 seconds) to avoid hitting API rate limits
+    sleep 2
+done
